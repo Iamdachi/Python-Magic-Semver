@@ -1,5 +1,10 @@
 import re
 
+"""
+to parse 1.0.1b as 1.0.1-b in original regex
+replace:  -(?P<prerelease>...)
+with:     -?(?P<prerelease>...)
+"""
 semver_regex = re.compile(
     r"""
     ^(?P<major>0|[1-9]\d*)
@@ -7,7 +12,7 @@ semver_regex = re.compile(
     (?P<minor>0|[1-9]\d*)
     \.
     (?P<patch>0|[1-9]\d*)
-    (?:-(?P<prerelease>
+    (?:-?(?P<prerelease>
         (?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)
         (?:\.(?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*
     ))?
@@ -42,7 +47,7 @@ class Version:
     def compare_pre_release(self, other):
         """ Returns true if self.preRelease < other.preRelease"""
         if (self.prerelease is None) ^ (other.prerelease is None):
-            return self.prerelease is None
+            return other.prerelease is None
 
         s_pre = self.prerelease.split(".")
         o_pre = other.prerelease.split(".")
@@ -102,12 +107,12 @@ def main():
         ("1.0.0", "1.42.0"),
         ("1.2.0", "1.2.42"),
         ("1.1.0-alpha", "1.2.0-alpha.1"),
-        #("1.0.1b", "1.0.10-alpha.beta"), # invalid formed version
+        ("1.0.1b", "1.0.10-alpha.beta"), # invalid formed version
         ("1.0.0-rc.1", "1.0.0"),
     ]
 
     for left, right in to_test:
-        assert Version(left) < Version(right), "le failed"
+        assert Version(left) < Version(right), "le failed" + str(parse_semver(left)) + "\n" + str(parse_semver(right))
         assert Version(right) > Version(left), "ge failed"
         assert Version(right) != Version(left), "neq failed"
 

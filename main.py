@@ -112,7 +112,7 @@ def main():
     ]
 
     for left, right in to_test:
-        assert Version(left) < Version(right), "le failed" + str(parse_semver(left)) + "\n" + str(parse_semver(right))
+        assert Version(left) < Version(right), "le failed"
         assert Version(right) > Version(left), "ge failed"
         assert Version(right) != Version(left), "neq failed"
 

@@ -39,24 +39,15 @@ class Version:
         self.buildmetadata = version_dict.get("buildmetadata")
 
 
-    def __lt__(self, other):
-        if self == other:
-            return False
-
-        if self.major != other.major:  return self.major < other.major
-
-        if self.minor != other.minor:  return self.minor < other.minor
-
-        if self.patch != other.patch:  return self.patch < other.patch
-
-        if self.prerelease and other.prerelease is None:  return True
-
-        if other.prerelease and self.prerelease is None:  return False
+    def compare_pre_release(self, other):
+        """ Returns true if self.preRelease < other.preRelease"""
+        if (self.prerelease is None) ^ (other.prerelease is None):
+            return self.prerelease is None
 
         s_pre = self.prerelease.split(".")
-        o_pre = self.prerelease.split(".")
+        o_pre = other.prerelease.split(".")
 
-        for i in range(len(s_pre)):
+        for i, _ in enumerate(s_pre):
             if i >= len(o_pre):
                 return False
 
@@ -70,6 +61,22 @@ class Version:
 
         return False
 
+    def __lt__(self, other):
+        if self == other:
+            return False
+
+        if self.major != other.major:
+            return self.major < other.major
+
+        if self.minor != other.minor:
+            return self.minor < other.minor
+
+        if self.patch != other.patch:
+            return self.patch < other.patch
+
+        return self.compare_pre_release(other)
+
+
     def __eq__(self, other):
         return (self.major == other.major
                 and self.minor == other.minor
@@ -77,13 +84,17 @@ class Version:
                 and self.prerelease == other.prerelease)
 
 
-    def __le__(self, other):  return self == other or self < other
+    def __le__(self, other):
+        return self == other or self < other
 
-    def __gt__(self, other):  return self != other and not self < other
+    def __gt__(self, other):
+        return self != other and not self < other
 
-    def __ge__(self, other):  return self == other or self > other
+    def __ge__(self, other):
+        return self == other or self > other
 
-    def __ne__(self, other):  return not self == other
+    def __ne__(self, other):
+        return not self == other
 
 def main():
     to_test = [

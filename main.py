@@ -64,19 +64,14 @@ class Version:
         s_pre = self.prerelease.split(".")
         o_pre = other.prerelease.split(".")
 
-        for i, _ in enumerate(s_pre):
-            if i >= len(o_pre):
-                return False
-
-            if s_pre[i] != o_pre[i]:
-                if s_pre[i].isdigit() and o_pre[i].isdigit():
-                    return int(s_pre[i]) < int(o_pre[i])
-
-                if s_pre[i].isdigit() or o_pre[i].isdigit():
-                    return s_pre[i].isdigit()
-                return s_pre[i] < o_pre[i]
-
-        return False
+        for s, o in zip(s_pre, o_pre):
+            if s != o:
+                if s.isdigit() and o.isdigit():
+                    return int(s) < int(o)
+                if s.isdigit() or o.isdigit():
+                    return s.isdigit()
+                return s < o
+        return len(s_pre) < len(o_pre)
 
     def __eq__(self, other):
         return (self.major == other.major

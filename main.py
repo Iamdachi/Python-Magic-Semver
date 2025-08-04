@@ -1,34 +1,44 @@
 import re
+from typing import Optional
 
-"""
-to parse 1.0.1b as 1.0.1-b in original regex
-replace:  -(?P<prerelease>...)
-with:     -?(?P<prerelease>...)
-"""
-semver_regex = re.compile(
-    r"""
-    ^(?P<major>0|[1-9]\d*)
-    \.
-    (?P<minor>0|[1-9]\d*)
-    \.
-    (?P<patch>0|[1-9]\d*)
-    (?:-?(?P<prerelease>
-        (?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)
-        (?:\.(?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*
-    ))?
-    (?:\+(?P<buildmetadata>
-        [0-9a-zA-Z-]+
-        (?:\.[0-9a-zA-Z-]+)*
-    ))?
-    $
-    """,
-    re.VERBOSE,
-)
 
-def parse_semver(version):
+def parse_semver(version: str) -> dict[str, Optional[str]]:
+    """
+    Parse a semantic version string into its components.
+
+    Parameters:
+        version (str): A version string like "1.0.0-b+a".
+
+    Returns:
+        dict: A dictionary with keys: 'major', 'minor', 'patch',
+              'prerelease', and 'buildmetadata'.
+
+    Notes:
+        To support inputs like "1.0.1b", the regex was modified by replacing
+        '-(?P<prerelease>...)' with '-?(?P<prerelease>...)' to allow an optional dash.
+    """
+    semver_regex = re.compile(
+        r"""
+        ^(?P<major>0|[1-9]\d*)
+        \.
+        (?P<minor>0|[1-9]\d*)
+        \.
+        (?P<patch>0|[1-9]\d*)
+        (?:-?(?P<prerelease>
+            (?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)
+            (?:\.(?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*
+        ))?
+        (?:\+(?P<buildmetadata>
+            [0-9a-zA-Z-]+
+            (?:\.[0-9a-zA-Z-]+)*
+        ))?
+        $
+        """,
+        re.VERBOSE,
+    )
     match = semver_regex.match(version)
     if not match:
-        return f"❌ Invalid: {version}"
+        raise ValueError(f"Invalid version: {version}")
     return match.groupdict()
 
 class Version:
@@ -107,7 +117,7 @@ def main():
         ("1.0.0", "1.42.0"),
         ("1.2.0", "1.2.42"),
         ("1.1.0-alpha", "1.2.0-alpha.1"),
-        ("1.0.1b", "1.0.10-alpha.beta"), # invalid formed version
+        ("1.0.1b", "1.0.10-alpha.beta"),
         ("1.0.0-rc.1", "1.0.0"),
     ]
 
@@ -117,4 +127,5 @@ def main():
         assert Version(right) != Version(left), "neq failed"
 
 if __name__ == "__main__":
+    print((parse_semver("1.0.0b+a")))
     main()

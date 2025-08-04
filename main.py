@@ -1,5 +1,6 @@
 import re
 from typing import Optional
+from functools import total_ordering
 
 
 def parse_semver(version: str) -> dict[str, Optional[str]]:
@@ -41,6 +42,8 @@ def parse_semver(version: str) -> dict[str, Optional[str]]:
         raise ValueError(f"Invalid version: {version}")
     return match.groupdict()
 
+
+@total_ordering
 class Version:
     def __init__(self, version: str):
         version_dict = parse_semver(version)
@@ -53,9 +56,8 @@ class Version:
         self.prerelease = version_dict.get("prerelease")
         self.buildmetadata = version_dict.get("buildmetadata")
 
-
-    def compare_pre_release(self, other):
-        """ Returns true if self.preRelease < other.preRelease"""
+    def compare_pre_release(self, other: "Version") -> bool:
+        """Return True if self.prerelease < other.prerelease."""
         if (self.prerelease is None) ^ (other.prerelease is None):
             return other.prerelease is None
 
@@ -76,6 +78,12 @@ class Version:
 
         return False
 
+    def __eq__(self, other):
+        return (self.major == other.major
+                and self.minor == other.minor
+                and self.patch == other.patch
+                and self.prerelease == other.prerelease)
+
     def __lt__(self, other):
         if self == other:
             return False
@@ -92,25 +100,6 @@ class Version:
         return self.compare_pre_release(other)
 
 
-    def __eq__(self, other):
-        return (self.major == other.major
-                and self.minor == other.minor
-                and self.patch == other.patch
-                and self.prerelease == other.prerelease)
-
-
-    def __le__(self, other):
-        return self == other or self < other
-
-    def __gt__(self, other):
-        return self != other and not self < other
-
-    def __ge__(self, other):
-        return self == other or self > other
-
-    def __ne__(self, other):
-        return not self == other
-
 def main():
     to_test = [
         ("1.0.0", "2.0.0"),
@@ -126,6 +115,6 @@ def main():
         assert Version(right) > Version(left), "ge failed"
         assert Version(right) != Version(left), "neq failed"
 
+
 if __name__ == "__main__":
-    print((parse_semver("1.0.0b+a")))
     main()

@@ -25,11 +25,11 @@ def parse_semver(version: str) -> dict[str, Optional[str]]:
         (?P<minor>0|[1-9]\d*)
         \.
         (?P<patch>0|[1-9]\d*)
-        (?:-?(?P<prerelease>
+        (?:-?(?P<pre_release>
             (?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)
             (?:\.(?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*
         ))?
-        (?:\+(?P<buildmetadata>
+        (?:\+(?P<build_metadata>
             [0-9a-zA-Z-]+
             (?:\.[0-9a-zA-Z-]+)*
         ))?
@@ -45,7 +45,7 @@ def parse_semver(version: str) -> dict[str, Optional[str]]:
 
 @total_ordering
 class Version:
-    def __init__(self, version: str):
+    def __init__(self, version: str)    :
         version_dict = parse_semver(version)
         try:
             self.major = int(version_dict["major"])
@@ -53,31 +53,33 @@ class Version:
             self.patch = int(version_dict["patch"])
         except (ValueError, TypeError) as e:
             raise ValueError(f"Invalid version number: {version}") from e
-        self.prerelease = version_dict.get("prerelease")
-        self.buildmetadata = version_dict.get("buildmetadata")
+        self.pre_release = version_dict.get("pre_release")
+        self.build_metadata = version_dict.get("build_metadata")
 
     def compare_pre_release(self, other: "Version") -> bool:
         """Return True if self.prerelease < other.prerelease."""
-        if (self.prerelease is None) ^ (other.prerelease is None):
-            return other.prerelease is None
+        if self.pre_release is None and other.pre_release is None:
+            return False
+        if (self.pre_release is None) ^ (other.pre_release is None):
+            return other.pre_release is None
 
-        s_pre = self.prerelease.split(".")
-        o_pre = other.prerelease.split(".")
+        self_parts = self.pre_release.split(".")
+        other_parts = other.pre_release.split(".")
 
-        for s, o in zip(s_pre, o_pre):
-            if s != o:
-                if s.isdigit() and o.isdigit():
-                    return int(s) < int(o)
-                if s.isdigit() or o.isdigit():
-                    return s.isdigit()
-                return s < o
-        return len(s_pre) < len(o_pre)
+        for self_part, other_part in zip(self_parts, other_parts):
+            if self_part != other_part:
+                if self_part.isdigit() and other_part.isdigit():
+                    return int(self_part) < int(other_part)
+                if self_part.isdigit() or other_part.isdigit():
+                    return self_part.isdigit()
+                return self_part < other_part
+        return len(self_parts) < len(other_parts)
 
     def __eq__(self, other):
         return (self.major == other.major
                 and self.minor == other.minor
                 and self.patch == other.patch
-                and self.prerelease == other.prerelease)
+                and self.pre_release == other.pre_release)
 
     def __lt__(self, other):
         if self == other:
@@ -103,10 +105,31 @@ def main():
         ("1.1.0-alpha", "1.2.0-alpha.1"),
         ("1.0.1b", "1.0.10-alpha.beta"),
         ("1.0.0-rc.1", "1.0.0"),
+        ("1.0.0-beta", "1.0.0-beta.2"),
+        ("1.0.0-beta.2", "1.0.0-beta.11"),
+        ("1.0.0-alpha", "1.0.0-alpha.1"),  # more identifiers = higher
+        ("1.0.0-alpha.1", "1.0.0-alpha.beta"),  # numeric < alphanumeric
+        ("1.0.0-alpha.beta", "1.0.0-beta"),  # alpha < beta
+        ("1.0.0-beta", "1.0.0-beta.2"),  # beta < beta.2
+        ("1.0.0-beta.11", "1.0.0-rc.1"),  # beta.11 < rc.1
+        ("1.0.0-rc.1", "1.0.0-rc.2"),  # rc.1 < rc.2
+        ("1.0.0-rc.2", "1.0.0-rc.10"),  # numeric compare
+        ("1.0.0-rc.10", "1.0.0"),  # prerelease < release
+        ("1.0.0-alpha", "1.0.0"),  # prerelease < release
+        #("1.0.0", "1.0.0+build.1"),  # build metadata ignored
+        #("1.0.0+build.1", "1.0.0+build.2"),  # build metadata ignored
+        #("1.0.0-alpha+exp.sha.5114f85", "1.0.0-alpha"),  # build metadata ignored
+
+        #("1.0.0-alpha", "1.0.0-alpha"),  # equal
+        ("1.0.0-0.3.7", "1.0.0-alpha"),  # numeric < alpha
+        ("1.0.0-alpha", "1.0.0-alpha.0"),  # alpha < alpha.0
+        ("1.0.0-alpha.0", "1.0.0-alpha.a"),  # numeric < alpha
+
+        #("1.0.0-alpha.0.a", "1.0.0-alpha.0.0"),  # lexical
     ]
 
     for left, right in to_test:
-        assert Version(left) < Version(right), "le failed"
+        assert Version(left) < Version(right), "le failed" + " " + left + " " + right
         assert Version(right) > Version(left), "ge failed"
         assert Version(right) != Version(left), "neq failed"
 

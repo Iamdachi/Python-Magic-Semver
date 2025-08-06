@@ -45,7 +45,7 @@ def parse_semver(version: str) -> dict[str, Optional[str]]:
 
 @total_ordering
 class Version:
-    def __init__(self, version: str)    :
+    def __init__(self, version: str):
         version_dict = parse_semver(version)
         try:
             self.major = int(version_dict["major"])
@@ -57,7 +57,7 @@ class Version:
         self.build_metadata = version_dict.get("build_metadata")
 
     def compare_pre_release(self, other: "Version") -> bool:
-        """Return True if self.prerelease < other.prerelease."""
+        """Return True if self.pre_release has lower precedence than other.pre_release."""
         if self.pre_release is None and other.pre_release is None:
             return False
         if (self.pre_release is None) ^ (other.pre_release is None):
@@ -75,13 +75,13 @@ class Version:
                 return self_part < other_part
         return len(self_parts) < len(other_parts)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return (self.major == other.major
                 and self.minor == other.minor
                 and self.patch == other.patch
                 and self.pre_release == other.pre_release)
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         if self == other:
             return False
 
@@ -116,22 +116,26 @@ def main():
         ("1.0.0-rc.2", "1.0.0-rc.10"),  # numeric compare
         ("1.0.0-rc.10", "1.0.0"),  # prerelease < release
         ("1.0.0-alpha", "1.0.0"),  # prerelease < release
-        #("1.0.0", "1.0.0+build.1"),  # build metadata ignored
-        #("1.0.0+build.1", "1.0.0+build.2"),  # build metadata ignored
-        #("1.0.0-alpha+exp.sha.5114f85", "1.0.0-alpha"),  # build metadata ignored
-
-        #("1.0.0-alpha", "1.0.0-alpha"),  # equal
         ("1.0.0-0.3.7", "1.0.0-alpha"),  # numeric < alpha
         ("1.0.0-alpha", "1.0.0-alpha.0"),  # alpha < alpha.0
         ("1.0.0-alpha.0", "1.0.0-alpha.a"),  # numeric < alpha
-
-        #("1.0.0-alpha.0.a", "1.0.0-alpha.0.0"),  # lexical
+        ("1.0.0-alpha.0.0", "1.0.0-alpha.0.a"),  # pre-release: numeric < lexical
     ]
 
     for left, right in to_test:
-        assert Version(left) < Version(right), "le failed" + " " + left + " " + right
+        assert Version(left) < Version(right), "le failed"
         assert Version(right) > Version(left), "ge failed"
         assert Version(right) != Version(left), "neq failed"
+
+    to_test_equality = [
+        ("1.0.0-alpha", "1.0.0-alpha"),
+        ("1.0.0", "1.0.0+build.1"),  # build metadata ignored
+        ("1.0.0+build.1", "1.0.0+build.2"),  # build metadata ignored
+        ("1.0.0-alpha+exp.sha.5114f85", "1.0.0-alpha"),  # build metadata ignored
+    ]
+
+    for left, right in to_test_equality:
+        assert Version(right) == Version(left), "eq failed"
 
 
 if __name__ == "__main__":

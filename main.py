@@ -3,50 +3,10 @@ from typing import Optional
 from functools import total_ordering
 
 
-def parse_semver(version: str) -> dict[str, Optional[str]]:
-    """
-    Parse a semantic version string into its components.
-
-    Parameters:
-        version (str): A version string like "1.0.0-b+a".
-
-    Returns:
-        dict: A dictionary with keys: 'major', 'minor', 'patch',
-              'prerelease', and 'buildmetadata'.
-
-    Notes:
-        To support inputs like "1.0.1b", the regex was modified by replacing
-        '-(?P<prerelease>...)' with '-?(?P<prerelease>...)' to allow an optional dash.
-    """
-    semver_regex = re.compile(
-        r"""
-        ^(?P<major>0|[1-9]\d*)
-        \.
-        (?P<minor>0|[1-9]\d*)
-        \.
-        (?P<patch>0|[1-9]\d*)
-        (?:-?(?P<pre_release>
-            (?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)
-            (?:\.(?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*
-        ))?
-        (?:\+(?P<build_metadata>
-            [0-9a-zA-Z-]+
-            (?:\.[0-9a-zA-Z-]+)*
-        ))?
-        $
-        """,
-        re.VERBOSE,
-    )
-    match = semver_regex.match(version)
-    if not match:
-        raise ValueError(f"Invalid version: {version}")
-    return match.groupdict()
-
-
 @total_ordering
 class Version:
     def __init__(self, version: str):
-        version_dict = parse_semver(version)
+        version_dict = self.parse_semver(version)
         try:
             self.major = int(version_dict["major"])
             self.minor = int(version_dict["minor"])
@@ -55,6 +15,46 @@ class Version:
             raise ValueError(f"Invalid version number: {version}") from e
         self.pre_release = version_dict.get("pre_release")
         self.build_metadata = version_dict.get("build_metadata")
+
+    @staticmethod
+    def parse_semver(version: str) -> dict[str, Optional[str]]:
+        """
+        Parse a semantic version string into its components.
+
+        Parameters:
+            version (str): A version string like "1.0.0-b+a".
+
+        Returns:
+            dict: A dictionary with keys: 'major', 'minor', 'patch',
+                  'prerelease', and 'buildmetadata'.
+
+        Notes:
+            To support inputs like "1.0.1b", the regex was modified by replacing
+            '-(?P<prerelease>...)' with '-?(?P<prerelease>...)' to allow an optional dash.
+        """
+        semver_regex = re.compile(
+            r"""
+            ^(?P<major>0|[1-9]\d*)
+            \.
+            (?P<minor>0|[1-9]\d*)
+            \.
+            (?P<patch>0|[1-9]\d*)
+            (?:-?(?P<pre_release>
+                (?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)
+                (?:\.(?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*
+            ))?
+            (?:\+(?P<build_metadata>
+                [0-9a-zA-Z-]+
+                (?:\.[0-9a-zA-Z-]+)*
+            ))?
+            $
+            """,
+            re.VERBOSE,
+        )
+        match = semver_regex.match(version)
+        if not match:
+            raise ValueError(f"Invalid version: {version}")
+        return match.groupdict()
 
     def compare_pre_release(self, other: "Version") -> bool:
         """Return True if self.pre_release has lower precedence than other.pre_release."""
